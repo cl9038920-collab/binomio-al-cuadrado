@@ -1,0 +1,709 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Binomio al cuadrado</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Diseño: tablero de juego. Tres colores fijos para las tres partes del resultado: azul = primero al cuadrado, naranja = doble producto, verde = segundo al cuadrado. */
+:root{
+  --bg:#F3F6FF; --panel:#FFFFFF; --ink:#1A1F3D; --muted:#5A6088; --line:#D6DCF2;
+  --accent:#5A3FE0; --accent-ink:#FFFFFF;
+  --ca-fill:#BFD7FF; --ca-line:#2D6FE0;
+  --cb-fill:#FFD79A; --cb-line:#D07A06;
+  --cc-fill:#AFEBD3; --cc-line:#0F8A63;
+  --ok:#0F6B4E; --ok-bg:#D8F3E7; --bad:#A12B3A; --bad-bg:#FDE2E5; --info-bg:#E9EDFB;
+  --gold:#E3A008; --star-off:#D6DCF2; --hot-bg:#EDE8FF;
+  --f-head:'Lexend',system-ui,sans-serif;
+  --f-body:'Inter',system-ui,sans-serif;
+  --f-math:'STIX Two Text','Cambria Math',Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1125; --panel:#171B38; --ink:#EEF0FF; --muted:#A5ABD0; --line:#2D3463;
+    --accent:#9B8CFF; --accent-ink:#0E1125;
+    --ca-fill:#1E3D78; --ca-line:#7AAEFF;
+    --cb-fill:#6A4108; --cb-line:#FFB84D;
+    --cc-fill:#0E5742; --cc-line:#45DDA9;
+    --ok:#63DDB0; --ok-bg:#12372C; --bad:#FF9AA6; --bad-bg:#40202A; --info-bg:#1D2347;
+    --gold:#FFC83D; --star-off:#2D3463; --hot-bg:#2A2460;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1125; --panel:#171B38; --ink:#EEF0FF; --muted:#A5ABD0; --line:#2D3463;
+  --accent:#9B8CFF; --accent-ink:#0E1125;
+  --ca-fill:#1E3D78; --ca-line:#7AAEFF;
+  --cb-fill:#6A4108; --cb-line:#FFB84D;
+  --cc-fill:#0E5742; --cc-line:#45DDA9;
+  --ok:#63DDB0; --ok-bg:#12372C; --bad:#FF9AA6; --bad-bg:#40202A; --info-bg:#1D2347;
+  --gold:#FFC83D; --star-off:#2D3463; --hot-bg:#2A2460;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.55 var(--f-body);
+  padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:16px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:52px;height:52px;flex:none}
+.lg-a{fill:var(--ca-fill);stroke:var(--ca-line);stroke-width:2.5}
+.lg-b{fill:var(--cb-fill);stroke:var(--cb-line);stroke-width:2.5}
+.lg-c{fill:var(--cc-fill);stroke:var(--cc-line);stroke-width:2.5}
+h1{font:700 clamp(1.6rem,5.5vw,2.3rem)/1.1 var(--f-head);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--muted)}
+.pills{display:flex;gap:8px}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:600;white-space:nowrap}
+.pill b{font:600 1.15rem var(--f-head);margin-left:6px;font-variant-numeric:tabular-nums}
+.pill.hot{background:var(--hot-bg);border-color:var(--accent)}
+
+.modes{display:flex;flex-wrap:wrap;gap:8px}
+.mode{font:600 1rem var(--f-head);color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:10px 20px;min-height:46px;cursor:pointer}
+.mode[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.modedesc{margin:0;color:var(--muted)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.eyebrow{margin:0 0 6px;font:600 .75rem var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.m{font-family:var(--f-math)}
+.t{display:inline-block;padding:1px 9px;border-radius:8px;color:var(--ink)}
+.ta{background:var(--ca-fill)}
+.tb{background:var(--cb-fill)}
+.tc{background:var(--cc-fill)}
+.neg{color:var(--bad)}
+
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{font:600 .95rem var(--f-body);color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:10px 16px;min-height:46px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[hidden]{display:none}
+
+/* ---------- Explorar ---------- */
+.ex{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.ex>*{min-width:0}
+@media (min-width:820px){.ex{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:start}}
+.side{display:grid;gap:16px}
+#sq{width:100%;height:auto;display:block}
+.sq{stroke-width:2}
+.ca{fill:var(--ca-fill);stroke:var(--ca-line)}
+.cb{fill:var(--cb-fill);stroke:var(--cb-line)}
+.cc{fill:var(--cc-fill);stroke:var(--cc-line)}
+.miss{fill:none;stroke:var(--bad);stroke-dasharray:7 5}
+.hat{fill:url(#hat);stroke:none;pointer-events:none}
+.outl{fill:none;stroke:var(--ink);stroke-width:2.5}
+.lab{font:600 17px var(--f-math);fill:var(--ink)}
+.cl{font:600 18px var(--f-math);fill:var(--ink);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.cl2{font:400 15px var(--f-math);fill:var(--ink);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.cl.bad{fill:var(--bad)}
+.ctrls{display:grid;gap:14px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{font:500 1.2rem var(--f-math);color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:8px 16px;min-height:46px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.slider{display:grid;gap:2px}
+.slider label{display:flex;justify-content:space-between;font-weight:600}
+.slider output{font-family:var(--f-math);font-size:1.2rem}
+input[type=range]{width:100%;height:34px;accent-color:var(--accent)}
+.row2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chk{display:flex;align-items:center;gap:8px;font-weight:500;min-height:44px}
+.chk input{width:22px;height:22px;accent-color:var(--accent)}
+.eqn{display:grid;gap:10px}
+.eqline{margin:0;font:400 clamp(1.15rem,4.4vw,1.5rem)/1.7 var(--f-math);overflow-wrap:anywhere}
+.eqline.bad{color:var(--bad)}
+.note{margin:0;color:var(--muted)}
+
+/* ---------- Juegos ---------- */
+.dots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.dot{width:24px;height:9px;border-radius:99px;background:var(--line)}
+.dot.ok{background:var(--ok)}
+.dot.bad{background:var(--bad)}
+.dot.cur{outline:2px solid var(--accent);outline-offset:2px}
+.prob{margin:2px 0 14px;font:400 clamp(2.2rem,9vw,3.3rem)/1.15 var(--f-math);overflow-wrap:anywhere}
+.slots{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 10px;font-family:var(--f-math);font-size:clamp(1.5rem,5.2vw,1.9rem);margin:6px 0 18px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:6px}
+.slot .row{display:flex;align-items:center;gap:4px;height:1.7em}
+.sl{font:600 .72rem/1.25 var(--f-body);text-align:center;color:var(--muted);max-width:9.5em}
+.opw{height:1.7em;display:flex;align-items:center}
+.num{width:2.3em;height:1.7em;text-align:center;font:inherit;color:var(--ink);background:var(--bg);border:3px solid var(--line);border-radius:10px;padding:0;-moz-appearance:textfield;appearance:textfield}
+.num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.num.sa{border-color:var(--ca-line)}
+.num.sb{border-color:var(--cb-line)}
+.num.sc{border-color:var(--cc-line)}
+.num.good{background:var(--ok-bg)}
+.num.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.sign{width:1.5em;height:1.7em;font:600 1em var(--f-math);color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:10px;padding:0;cursor:pointer}
+.sign[data-s="-1"]{border-color:var(--bad);color:var(--bad)}
+.op{font-size:1em}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.feedback{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:500;background:var(--info-bg)}
+.feedback:empty{display:none}
+.feedback.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.feedback.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.feedback .m{font-size:1.15em}
+.steps{margin:14px 0 0;padding-left:1.4em;display:grid;gap:10px}
+.steps li::marker{font-weight:700;color:var(--accent)}
+.steps .m{font-size:1.15em}
+.opts{display:grid;gap:10px;margin:6px 0 4px}
+.opt{display:flex;align-items:center;gap:12px;text-align:left;font:400 clamp(1.2rem,4.6vw,1.6rem) var(--f-math);padding:12px 14px;min-height:58px;border:3px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.opt .bd{font:700 .85rem var(--f-head);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--info-bg);flex:none}
+.opt .mk{margin-left:auto;font:700 1.1rem var(--f-body)}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.nope{border-color:var(--bad);background:var(--bad-bg)}
+.end{text-align:center;padding:12px 0}
+.end h2{font:700 1.6rem var(--f-head);margin:8px 0}
+.stars{display:flex;justify-content:center;gap:8px}
+.star{width:56px;height:56px;fill:var(--star-off)}
+.star.on{fill:var(--gold);animation:pop .5s ease both}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+        <rect class="lg-a" x="2" y="2" width="28" height="28" rx="5"/>
+        <rect class="lg-b" x="33" y="2" width="13" height="28" rx="4"/>
+        <rect class="lg-b" x="2" y="33" width="28" height="13" rx="4"/>
+        <rect class="lg-c" x="33" y="33" width="13" height="13" rx="4"/>
+      </svg>
+      <div>
+        <h1>Binomio al cuadrado</h1>
+        <p class="sub">Explora, completa y caza errores.</p>
+      </div>
+    </div>
+    <div class="pills" aria-live="polite">
+      <div class="pill">Puntos<b id="pts">0</b></div>
+      <div class="pill" id="pk">Racha<b id="streak">0</b></div>
+    </div>
+  </header>
+
+  <div class="modes" id="modes" role="group" aria-label="Modo de juego">
+    <button type="button" class="mode" data-m="explore">Explorar</button>
+    <button type="button" class="mode" data-m="completa">Completa</button>
+    <button type="button" class="mode" data-m="detective">Detective</button>
+  </div>
+  <p class="modedesc" id="modedesc"></p>
+
+  <!-- EXPLORAR -->
+  <section id="p-explore" class="ex">
+    <div class="card">
+      <svg id="sq" viewBox="0 0 400 380" role="img" aria-label="Cuadrado dividido en regiones">
+        <defs>
+          <pattern id="hat" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" style="stroke:var(--cb-line);stroke-width:2"/>
+          </pattern>
+        </defs>
+        <g id="sqg"></g>
+      </svg>
+    </div>
+    <div class="side">
+      <div class="card ctrls">
+        <div class="seg" role="group" aria-label="Suma o resta">
+          <button type="button" id="s-plus" aria-pressed="true"><i>(a</i> + <i>b)</i>²</button>
+          <button type="button" id="s-minus" aria-pressed="false"><i>(a</i> − <i>b)</i>²</button>
+        </div>
+        <div class="slider">
+          <label for="ra"><span><i class="m">a</i></span><output id="oa" for="ra">4</output></label>
+          <input type="range" id="ra" min="2" max="9" step="1" value="4">
+        </div>
+        <div class="slider">
+          <label for="rb"><span><i class="m">b</i></span><output id="ob" for="rb">3</output></label>
+          <input type="range" id="rb" min="1" max="9" step="1" value="3">
+        </div>
+        <div class="row2">
+          <label class="chk"><input type="checkbox" id="cx"> Cambiar <i class="m">a</i> por <i class="m">x</i></label>
+        </div>
+        <div class="row2">
+          <button type="button" class="btn" id="b-rand">Al azar</button>
+          <button type="button" class="btn" id="b-trap">Probar con <i class="m">a</i>² + <i class="m">b</i>²</button>
+        </div>
+      </div>
+      <div class="card eqn">
+        <div id="eqn"></div>
+        <p class="note" id="note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPLETA -->
+  <section id="p-completa" class="card" hidden>
+    <div class="dots" id="dots-completa" role="img"></div>
+    <div id="g-completa">
+      <p class="eyebrow">Desarrolla el binomio al cuadrado</p>
+      <p class="prob" id="c-prob"></p>
+      <div class="slots">
+        <div class="slot"><div class="row"><input class="num sa" id="c1" type="number" min="1" max="999" inputmode="numeric" placeholder="?" aria-label="Número que acompaña a x al cuadrado"><span class="m"><i>x</i>²</span></div><span class="sl">el primero al cuadrado</span></div>
+        <div class="opw"><button type="button" class="sign" id="c-sign" data-s="1" aria-label="Signo del doble producto: más">+</button></div>
+        <div class="slot"><div class="row"><input class="num sb" id="c2" type="number" min="0" max="999" inputmode="numeric" placeholder="?" aria-label="Número que acompaña a x en el doble producto"><span class="m"><i>x</i></span></div><span class="sl">el doble producto</span></div>
+        <div class="opw"><span class="op">+</span></div>
+        <div class="slot"><div class="row"><input class="num sc" id="c3" type="number" min="1" max="999" inputmode="numeric" placeholder="?" aria-label="Número solo, el segundo al cuadrado"></div><span class="sl">el segundo al cuadrado</span></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="c-check">Comprobar</button>
+        <button type="button" class="btn" id="c-help">Ayuda</button>
+        <button type="button" class="btn" id="c-next" hidden>Siguiente</button>
+      </div>
+      <div class="feedback" id="c-msg" role="status"></div>
+      <ol class="steps" id="c-steps" hidden></ol>
+    </div>
+    <div class="end" id="e-completa" hidden></div>
+  </section>
+
+  <!-- DETECTIVE -->
+  <section id="p-detective" class="card" hidden>
+    <div class="dots" id="dots-detective" role="img"></div>
+    <div id="g-detective">
+      <p class="eyebrow">¿Cuál es el desarrollo correcto?</p>
+      <p class="prob" id="d-prob"></p>
+      <div class="opts" id="d-opts"></div>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn" id="d-next" hidden>Siguiente</button>
+      </div>
+      <div class="feedback" id="d-msg" role="status"></div>
+    </div>
+    <div class="end" id="e-detective" hidden></div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var MINUS='−', SQ='²', DOT='·';
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pick(a){return a[rnd(0,a.length-1)];}
+function shuffle(a){var i,j,t;for(i=a.length-1;i>0;i--){j=rnd(0,i);t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+/* ---------- formato de expresiones ---------- */
+function fa(c,p){
+  var a=Math.abs(c);
+  if(p===0) return String(a);
+  var x=p===2?'x'+SQ:'x';
+  return a===1?x:a+x;
+}
+function join(ts){
+  ts=ts.filter(function(t){return t.c!==0;});
+  if(!ts.length) return '0';
+  return ts.map(function(t,i){
+    var pre=i===0?(t.c<0?MINUS:''):(t.c<0?' '+MINUS+' ':' + ');
+    return pre+fa(t.c,t.p);
+  }).join('');
+}
+function bin(m,n){return join([{c:m,p:1},{c:n,p:0}]);}
+function ital(s){return s.replace(/[abx]/g,function(c){return '<i>'+c+'</i>';});}
+function E(s){return '<span class="m">'+ital(s)+'</span>';}
+function SV(s){return s.replace(/[abx]/g,function(c){return '<tspan font-style="italic">'+c+'</tspan>';});}
+function T(cls,html){return '<span class="t '+cls+'">'+html+'</span>';}
+
+/* =====================  EXPLORAR  ===================== */
+var ex={s:1,a:4,b:3,useX:false,trap:false};
+
+function cellLabel(x,y,w,h,lines,raw){
+  var cx=x+w/2,cy=y+h/2,fmt=function(t){return raw?t:SV(t);};
+  if(lines.length===2){
+    if(h>=46&&w>=56){
+      return '<text class="cl" x="'+cx+'" y="'+(cy-9)+'">'+fmt(lines[0])+'</text>'+
+             '<text class="cl2" x="'+cx+'" y="'+(cy+11)+'">'+lines[1]+'</text>';
+    }
+    if(h>=24&&w>=lines[1].length*9+8){
+      return '<text class="cl" x="'+cx+'" y="'+cy+'">'+lines[1]+'</text>';
+    }
+    return '';
+  }
+  if(h>=24&&w>=lines[0].length*9+10){
+    return '<text class="cl'+(raw?' bad':'')+'" x="'+cx+'" y="'+cy+'">'+fmt(lines[0])+'</text>';
+  }
+  return '';
+}
+
+function drawSq(a,b){
+  var s=ex.s,useX=ex.useX;
+  var side=s===1?a+b:a,u=300/side,ox=76,oy=46,out='';
+  var cw,rh,cells,top,left,miss=ex.trap&&s===1;
+  var bx=function(){return useX?[fa(b,1)]:['ab',String(a*b)];};
+  var strip=function(){return useX?[b+'(x '+MINUS+' '+b+')']:['b(a '+MINUS+' b)',String(b*(a-b))];};
+  if(s===1){
+    cw=[a*u,b*u]; rh=[a*u,b*u];
+    cells=[
+      {c:0,r:0,k:'ca',l:useX?['x'+SQ]:['a'+SQ,String(a*a)]},
+      {c:1,r:0,k:miss?'cb miss':'cb',l:miss?['falta']:bx(),raw:miss},
+      {c:0,r:1,k:miss?'cb miss':'cb',l:miss?['falta']:bx(),raw:miss},
+      {c:1,r:1,k:'cc',l:useX?[String(b*b)]:['b'+SQ,String(b*b)]}
+    ];
+    top=[useX?'x':'a = '+a,useX?String(b):'b = '+b];
+    left=[useX?'x':'a',useX?String(b):'b'];
+  }else{
+    cw=[(a-b)*u,b*u]; rh=[b*u,(a-b)*u];
+    cells=[
+      {c:0,r:0,k:'cb strip',l:strip()},
+      {c:1,r:0,k:'cc',l:useX?[String(b*b)]:['b'+SQ,String(b*b)]},
+      {c:0,r:1,k:'ca',l:useX?['(x '+MINUS+' '+b+')'+SQ]:['(a '+MINUS+' b)'+SQ,String((a-b)*(a-b))]},
+      {c:1,r:1,k:'cb strip',l:strip()}
+    ];
+    top=[useX?'x '+MINUS+' '+b:'a '+MINUS+' b = '+(a-b),useX?String(b):'b = '+b];
+    left=[useX?String(b):'b',useX?'x '+MINUS+' '+b:'a '+MINUS+' b'];
+  }
+  var x0=[ox,ox+cw[0]],y0=[oy,oy+rh[0]];
+  cells.forEach(function(cl){
+    var x=x0[cl.c],y=y0[cl.r],w=cw[cl.c],h=rh[cl.r];
+    out+='<rect class="sq '+cl.k+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>';
+    if(/strip/.test(cl.k)) out+='<rect class="hat" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>';
+    out+=cellLabel(x,y,w,h,cl.l,cl.raw);
+  });
+  top.forEach(function(t,i){
+    out+='<text class="lab" text-anchor="middle" x="'+(x0[i]+cw[i]/2)+'" y="'+(oy-12)+'">'+SV(t)+'</text>';
+  });
+  left.forEach(function(t,j){
+    out+='<text class="lab" text-anchor="end" dominant-baseline="central" x="'+(ox-10)+'" y="'+(y0[j]+rh[j]/2)+'">'+SV(t)+'</text>';
+  });
+  out+='<rect class="outl" x="'+ox+'" y="'+oy+'" width="'+(side*u)+'" height="'+(side*u)+'"/>';
+  $('#sqg').innerHTML=out;
+}
+
+function renderEx(){
+  var s=ex.s,useX=ex.useX,a=useX?6:ex.a,b=ex.b;
+  var bmax=useX?5:(s===1?9:a-1);
+  if(b>bmax){b=bmax;ex.b=b;}
+  if(s===-1) ex.trap=false;
+  $('#s-plus').setAttribute('aria-pressed',String(s===1));
+  $('#s-minus').setAttribute('aria-pressed',String(s===-1));
+  $('#ra').disabled=useX;
+  $('#ra').value=String(ex.a);
+  $('#rb').max=String(bmax);
+  $('#rb').value=String(b);
+  $('#oa').textContent=useX?'x':String(ex.a);
+  $('#ob').textContent=String(b);
+  $('#b-trap').hidden=(s!==1);
+  $('#b-trap').setAttribute('aria-pressed',String(ex.trap));
+  drawSq(a,b);
+  $('#sq').setAttribute('aria-label',s===1
+    ?'Cuadrado de lado a más b, dividido en a cuadrada, dos rectángulos ab y b cuadrada'
+    :'Cuadrado de lado a, con dos franjas que se quitan y un cuadrito b cuadrada en la esquina');
+
+  var h='',mn=s===1?'+':MINUS;
+  if(!useX){
+    var A=ex.a,B=b;
+    h+='<p class="eqline">'+E('(a '+mn+' b)'+SQ)+' = '+T('ta',E('a'+SQ))+' '+mn+' '+T('tb',E('2ab'))+' + '+T('tc',E('b'+SQ))+'</p>';
+    if(s===1){
+      h+='<p class="eqline">'+E('('+A+' + '+B+')'+SQ)+' = '+T('ta',A*A)+' + '+T('tb',2*A*B)+' + '+T('tc',B*B)+' = '+((A+B)*(A+B))+'</p>';
+    }else{
+      h+='<p class="eqline">'+E('('+A+' '+MINUS+' '+B+')'+SQ)+' = '+T('ta',A*A)+' '+MINUS+' '+T('tb',2*A*B)+' + '+T('tc',B*B)+' = '+((A-B)*(A-B))+'</p>';
+    }
+    if(ex.trap&&s===1){
+      h+='<p class="eqline bad">'+E('a'+SQ+' + b'+SQ)+' = '+(A*A)+' + '+(B*B)+' = '+(A*A+B*B)+' ≠ '+((A+B)*(A+B))+'. Faltan '+(2*A*B)+'.</p>';
+    }
+  }else{
+    h+='<p class="eqline">'+E('(x '+mn+' '+b+')'+SQ)+' = '+T('ta',E('x'+SQ))+' '+mn+' '+T('tb',E(fa(2*b,1)))+' + '+T('tc',String(b*b))+'</p>';
+    if(ex.trap&&s===1){
+      h+='<p class="eqline bad">'+E('x'+SQ+' + '+(b*b))+' no alcanza: faltan '+E(fa(2*b,1))+'.</p>';
+    }
+  }
+  $('#eqn').innerHTML=h;
+  $('#note').textContent=ex.trap&&s===1
+    ?'Si solo sumas a² + b², te faltan los dos rectángulos naranjas.'
+    :(s===1
+      ?'Los dos rectángulos naranjas son iguales. Por eso el término de en medio es el doble producto, 2ab.'
+      :'Al quitar las dos franjas, el cuadrito verde se quita dos veces. Por eso se suma b² de regreso.');
+}
+
+$('#s-plus').addEventListener('click',function(){ex.s=1;renderEx();});
+$('#s-minus').addEventListener('click',function(){ex.s=-1;renderEx();});
+$('#ra').addEventListener('input',function(){ex.a=Number(this.value);renderEx();});
+$('#rb').addEventListener('input',function(){ex.b=Number(this.value);renderEx();});
+$('#cx').addEventListener('change',function(){ex.useX=this.checked;renderEx();});
+$('#b-trap').addEventListener('click',function(){ex.trap=!ex.trap;renderEx();});
+$('#b-rand').addEventListener('click',function(){
+  ex.a=rnd(3,9);
+  ex.b=rnd(1,ex.s===1?9:ex.a-1);
+  renderEx();
+});
+
+/* =====================  PUNTOS Y RONDAS  ===================== */
+var PFX={completa:'c',detective:'d'};
+var games={completa:{total:10},detective:{total:8}};
+var points=0,streak=0;
+
+function setScore(){
+  $('#pts').textContent=String(points);
+  $('#streak').textContent=String(streak);
+  $('#pk').classList.toggle('hot',streak>=3);
+}
+function resetGame(key){
+  var g=games[key];
+  g.i=0; g.res=[]; g.pts=0; g.q=null; g.att=0; g.locked=false;
+}
+function renderDots(key){
+  var g=games[key],h='',i,c,el=$('#dots-'+key);
+  for(i=0;i<g.total;i++){
+    c='dot'+(g.res[i]?' '+g.res[i]:'')+(i===g.i?' cur':'');
+    h+='<span class="'+c+'"></span>';
+  }
+  el.innerHTML=h;
+  el.setAttribute('aria-label','Ejercicio '+Math.min(g.i+1,g.total)+' de '+g.total);
+}
+function genQ(level){
+  var k,n,s;
+  if(level<3){k=1;s=1;n=rnd(1,6);}
+  else if(level<6){k=1;s=pick([1,-1]);n=rnd(1,9);}
+  else{k=pick([1,2,2,3]);s=pick([1,-1]);n=rnd(1,7);}
+  return {k:k,n:n,s:s};
+}
+function sayG(key,kind,html){
+  var m=$('#'+PFX[key]+'-msg');
+  m.className='feedback'+(kind?' '+kind:'');
+  m.innerHTML=html;
+}
+function lockQ(key){
+  var g=games[key],p=PFX[key],nx=$('#'+p+'-next');
+  g.locked=true;
+  nx.hidden=false;
+  nx.textContent=(g.i>=g.total-1)?'Ver resultado':'Siguiente';
+  nx.classList.add('primary');
+  if(key==='completa'){$('#c-check').hidden=true;$('#c-help').hidden=true;}
+  renderDots(key);
+}
+function good(key){
+  var g=games[key],pts;
+  if(g.att===0){pts=10+2*Math.min(streak,5);streak++;}
+  else{pts=5;streak=0;}
+  g.pts+=pts; points+=pts; g.res[g.i]='ok';
+  setScore(); lockQ(key);
+  return pts;
+}
+function giveUp(key){
+  var g=games[key];
+  g.res[g.i]='bad'; streak=0;
+  setScore(); lockQ(key);
+}
+function starSvg(on,delay){
+  return '<svg class="star'+(on?' on':'')+'" viewBox="0 0 24 24" aria-hidden="true"'+(on?' style="animation-delay:'+delay+'ms"':'')+'><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7L2 9.2l7.1-.6z"/></svg>';
+}
+function showEnd(key){
+  var g=games[key],ok=g.res.filter(function(r){return r==='ok';}).length;
+  var stars=ok>=g.total-1?3:(ok>=Math.ceil(g.total*0.7)?2:(ok>=Math.ceil(g.total*0.5)?1:0));
+  var msgs=['Practica en Explorar y vuelve a jugar.','Vas bien. Repasa en Explorar y vuelve a intentar.','Muy bien, ya casi lo dominas.','Dominas el binomio al cuadrado.'];
+  $('#g-'+key).hidden=true;
+  var e=$('#e-'+key);
+  e.hidden=false;
+  e.innerHTML='<div class="stars" role="img" aria-label="'+stars+' de 3 estrellas">'+starSvg(stars>0,0)+starSvg(stars>1,180)+starSvg(stars>2,360)+'</div>'+
+    '<h2>'+msgs[stars]+'</h2>'+
+    '<p>'+ok+' de '+g.total+' bien. Puntos de esta ronda: <strong>'+g.pts+'</strong>.</p>'+
+    '<div class="actions" style="justify-content:center"><button type="button" class="btn primary" id="again-'+key+'">Jugar otra vez</button></div>';
+  $('#again-'+key).addEventListener('click',function(){startGame(key);});
+  g.i=g.total;
+  renderDots(key);
+}
+function nextQ(key){
+  var g=games[key];
+  g.i++;
+  if(g.i>=g.total) showEnd(key); else newQ(key);
+}
+function startGame(key){
+  resetGame(key);
+  $('#g-'+key).hidden=false;
+  $('#e-'+key).hidden=true;
+  newQ(key);
+}
+function newQ(key){ if(key==='completa') cNew(); else dNew(); }
+
+/* =====================  COMPLETA  ===================== */
+function ival(id,min){
+  var raw=$('#'+id).value.trim(),n=Number(raw);
+  if(raw===''||!Number.isInteger(n)||n<min||n>999) return null;
+  return n;
+}
+function setSign(s){
+  var b=$('#c-sign');
+  b.dataset.s=String(s);
+  b.textContent=s<0?MINUS:'+';
+  b.setAttribute('aria-label','Signo del doble producto: '+(s<0?'menos':'más'));
+}
+function mark(id,ok){
+  var el=$('#'+id);
+  el.classList.toggle('good',ok);
+  el.classList.toggle('wrong',!ok);
+}
+function clearMarks(){
+  ['c1','c2','c3'].forEach(function(id){
+    var el=$('#'+id);
+    el.value='';
+    el.classList.remove('good','wrong');
+  });
+}
+function firstOf(q){return q.k===1?'x':q.k+'x';}
+function cSteps(q){
+  var k=q.k,n=q.n,s=q.s,first=firstOf(q),c1=k*k,c2=2*k*n,c3=n*n;
+  var bn='('+bin(k,s*n)+')'+SQ;
+  return [
+    'El primero al cuadrado: '+E('('+first+')'+SQ)+' = '+T('ta',E(fa(c1,2)))+'.',
+    'El doble producto: '+E('2 '+DOT+' '+first+' '+DOT+' '+n)+' = '+T('tb',E(fa(c2,1)))+(s<0?'. Como es una resta, va con signo menos.':'.'),
+    'El segundo al cuadrado: '+E(n+SQ)+' = '+T('tc',E(String(c3)))+'. Siempre es positivo.',
+    'Todo junto: '+E(bn)+' = '+T('ta',E(fa(c1,2)))+' '+(s<0?MINUS:'+')+' '+T('tb',E(fa(c2,1)))+' + '+T('tc',E(String(c3)))+'.'
+  ];
+}
+function cNew(){
+  var g=games.completa,q;
+  q=genQ(g.i); g.q=q; g.att=0; g.locked=false;
+  $('#c-prob').innerHTML=E('('+bin(q.k,q.s*q.n)+')'+SQ);
+  clearMarks(); setSign(1);
+  $('#c-check').hidden=false; $('#c-help').hidden=false;
+  $('#c-next').hidden=true; $('#c-next').classList.remove('primary');
+  $('#c-steps').hidden=true; $('#c-steps').innerHTML='';
+  sayG('completa','','');
+  renderDots('completa');
+}
+function cReveal(q){
+  $('#c1').value=String(q.k*q.k);
+  $('#c2').value=String(2*q.k*q.n);
+  $('#c3').value=String(q.n*q.n);
+  setSign(q.s);
+  mark('c1',true);mark('c2',true);mark('c3',true);
+  $('#c-steps').innerHTML=cSteps(q).map(function(s){return '<li>'+s+'</li>';}).join('');
+  $('#c-steps').hidden=false;
+}
+function cCheck(){
+  var g=games.completa,q=g.q;
+  if(g.locked) return;
+  var v1=ival('c1',1),v2=ival('c2',0),v3=ival('c3',1);
+  if(v1===null||v2===null||v3===null){sayG('completa','','Llena los tres números.');return;}
+  var sgn=Number($('#c-sign').dataset.s),k=q.k,n=q.n,s=q.s,first=firstOf(q);
+  var ok1=v1===k*k,okM=(v2===2*k*n&&sgn===s),ok3=v3===n*n;
+  mark('c1',ok1);mark('c2',okM);mark('c3',ok3);
+  if(ok1&&okM&&ok3){
+    var pts=good('completa');
+    sayG('completa','ok','<strong>¡Correcto!</strong> +'+pts+' puntos. '+
+      E('('+bin(k,s*n)+')'+SQ)+' = '+T('ta',E(fa(k*k,2)))+' '+(s<0?MINUS:'+')+' '+T('tb',E(fa(2*k*n,1)))+' + '+T('tc',E(String(n*n))));
+    return;
+  }
+  var tips=[];
+  if(!ok1){
+    tips.push((k>1&&v1===k)
+      ?'Elevaste la '+E('x')+' pero el número también se eleva: '+E('('+k+'x)'+SQ)+' no es '+E(k+'x'+SQ)+'.'
+      :'Revisa el primero al cuadrado: '+E('('+first+')'+SQ)+'.');
+  }
+  if(!okM){
+    if(v2===0) tips.push('Falta el doble producto. '+E('(a '+(s<0?MINUS:'+')+' b)'+SQ)+' no es '+E('a'+SQ+' '+(s<0?MINUS:'+')+' b'+SQ)+'.');
+    else if(v2===k*n) tips.push('Olvidaste duplicar: es 2 por el primero por el segundo.');
+    else if(v2===2*k*n&&sgn!==s) tips.push(s<0?'El número está bien, pero como el binomio es una resta, el doble producto va negativo.':'El número está bien, pero como el binomio es una suma, el doble producto va positivo.');
+    else tips.push('Revisa el doble producto: '+E('2 '+DOT+' '+first+' '+DOT+' '+n)+'.');
+  }
+  if(!ok3){
+    tips.push(v3===n&&n>1?'El segundo también se eleva al cuadrado: multiplícalo por sí mismo.':'Revisa el segundo al cuadrado.');
+  }
+  g.att++;
+  if(g.att>=2){
+    giveUp('completa');
+    cReveal(q);
+    sayG('completa','bad','<strong>Esta vez te la mostramos.</strong> '+tips.join(' ')+' Mira el paso a paso y sigue con el siguiente.');
+  }else{
+    sayG('completa','bad','<strong>Casi.</strong> '+tips.join(' ')+' Te queda otro intento.');
+  }
+}
+$('#c-check').addEventListener('click',cCheck);
+$('#c-help').addEventListener('click',function(){
+  var g=games.completa;
+  if(g.locked) return;
+  if(g.att<1){g.att=1;streak=0;setScore();}
+  $('#c-steps').innerHTML=cSteps(g.q).map(function(s){return '<li>'+s+'</li>';}).join('');
+  $('#c-steps').hidden=false;
+  sayG('completa','','Con ayuda vale menos, pero lo importante es entender cómo sale. Ahora escribe tu respuesta.');
+});
+$('#c-next').addEventListener('click',function(){nextQ('completa');});
+$('#c-sign').addEventListener('click',function(){setSign(-Number(this.dataset.s));});
+['c1','c2','c3'].forEach(function(id){
+  $('#'+id).addEventListener('input',function(){this.classList.remove('good','wrong');});
+  $('#'+id).addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();cCheck();}});
+});
+
+/* =====================  DETECTIVE  ===================== */
+function dNew(){
+  var g=games.detective,q,k,n,s,first,pool,opts,letters=['A','B','C'];
+  q=genQ(Math.floor(g.i*10/g.total)); g.q=q; g.att=0; g.locked=false;
+  k=q.k; n=q.n; s=q.s; first=firstOf(q);
+  pool=[
+    {c1:k*k,m:0,c3:s*n*n,why:'Le falta el doble producto, el término de en medio. Elevar un binomio al cuadrado no es elevar cada término por separado.'},
+    {c1:k*k,m:s*k*n,c3:n*n,why:'El término de en medio no está duplicado: es 2 por el primero por el segundo.'}
+  ];
+  if(s<0){
+    pool.push({c1:k*k,m:2*k*n,c3:n*n,why:'Se perdió el signo menos: en una resta, el doble producto es negativo.'});
+    pool.push({c1:k*k,m:-2*k*n,c3:-n*n,why:'El último término siempre es positivo: el segundo al cuadrado nunca es negativo.'});
+  }
+  if(k>1){
+    pool.push({c1:k,m:s*2*k*n,c3:n*n,why:'Faltó elevar al cuadrado el '+k+' de '+first+': '+E('('+first+')'+SQ)+' = '+E(k*k+'x'+SQ)+'.'});
+    pool.push({c1:k*k,m:s*2*n,c3:n*n,why:'Al duplicar, no olvides el '+k+': '+E('2 '+DOT+' '+first+' '+DOT+' '+n)+' = '+E(2*k*n+'x')+'.'});
+  }
+  opts=shuffle(pool).slice(0,2).map(function(o){o.good=false;return o;});
+  opts.push({c1:k*k,m:s*2*k*n,c3:n*n,good:true,why:''});
+  shuffle(opts);
+  g.opts=opts;
+  $('#d-prob').innerHTML=E('('+bin(k,s*n)+')'+SQ);
+  $('#d-opts').innerHTML=opts.map(function(o,i){
+    return '<button type="button" class="opt" data-i="'+i+'"><span class="bd">'+letters[i]+'</span>'+
+      E(join([{c:o.c1,p:2},{c:o.m,p:1},{c:o.c3,p:0}]))+'<span class="mk" aria-hidden="true"></span></button>';
+  }).join('');
+  $('#d-next').hidden=true; $('#d-next').classList.remove('primary');
+  sayG('detective','','');
+  renderDots('detective');
+}
+function dMark(btn,kind){
+  btn.classList.add(kind);
+  btn.disabled=true;
+  btn.querySelector('.mk').textContent=kind==='right'?'✓':'✗';
+}
+$('#d-opts').addEventListener('click',function(e){
+  var btn=e.target.closest('.opt'),g=games.detective;
+  if(!btn||g.locked||btn.disabled) return;
+  var o=g.opts[Number(btn.dataset.i)];
+  var all=Array.prototype.slice.call($('#d-opts').querySelectorAll('.opt'));
+  if(o.good){
+    var pts=good('detective');
+    dMark(btn,'right');
+    all.forEach(function(b){b.disabled=true;});
+    sayG('detective','ok','<strong>¡Ese es!</strong> +'+pts+' puntos. Tiene el primero al cuadrado, el doble producto y el segundo al cuadrado.');
+    return;
+  }
+  g.att++;
+  dMark(btn,'nope');
+  if(g.att>=2){
+    giveUp('detective');
+    all.forEach(function(b,i){
+      if(g.opts[i].good) dMark(b,'right');
+      b.disabled=true;
+    });
+    sayG('detective','bad','<strong>Esa no.</strong> '+o.why+' La correcta era la marcada en verde.');
+  }else{
+    sayG('detective','bad','<strong>Esa no.</strong> '+o.why+' Prueba con otra.');
+  }
+});
+$('#d-next').addEventListener('click',function(){nextQ('detective');});
+
+/* =====================  MODOS  ===================== */
+var DESC={
+  explore:'Mueve los deslizadores y mira de dónde salen los tres términos.',
+  completa:'Desarrolla 10 binomios. Tienes dos intentos por ejercicio.',
+  detective:'Encuentra el desarrollo correcto y esquiva las trampas.'
+};
+function showMode(m){
+  ['explore','completa','detective'].forEach(function(k){
+    $('#p-'+k).hidden=(k!==m);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#modes .mode'),function(b){
+    b.setAttribute('aria-pressed',String(b.dataset.m===m));
+  });
+  $('#modedesc').textContent=DESC[m];
+  if(m==='explore') renderEx();
+  else if(games[m].q===null||games[m].q===undefined) startGame(m);
+}
+Array.prototype.forEach.call(document.querySelectorAll('#modes .mode'),function(b){
+  b.addEventListener('click',function(){showMode(b.dataset.m);});
+});
+resetGame('completa'); resetGame('detective');
+setScore();
+showMode('explore');
+})();
+</script>
+
+</body></html>
